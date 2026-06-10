@@ -1,4 +1,4 @@
-# Tab Cycler
+# frog
 
 Brave browser extension for cycling through open tabs with shortcuts configured by the user.
 
