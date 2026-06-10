@@ -107,6 +107,12 @@
         height: 30px;
       }
 
+      .preview img.screenshot {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
       .fallback-icon {
         display: grid;
         place-items: center;
@@ -178,12 +184,14 @@
 
       const title = tab.title || tab.url || "Untitled tab";
       const host = formatHost(tab.url);
-      const icon = tab.favIconUrl
+      const preview = tab.previewUrl
+        ? `<img class="screenshot" src="${escapeAttribute(tab.previewUrl)}" alt="">`
+        : tab.favIconUrl
         ? `<img src="${escapeAttribute(tab.favIconUrl)}" alt="">`
         : `<span class="fallback-icon">${escapeHtml(title.slice(0, 1).toUpperCase())}</span>`;
 
       item.innerHTML = `
-        <span class="preview">${icon}</span>
+        <span class="preview">${preview}</span>
         <span class="meta">
           <span class="title">${escapeHtml(title)}</span>
           <span class="url">${escapeHtml(host)}</span>

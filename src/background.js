@@ -6,6 +6,8 @@ const COMMANDS = {
 };
 
 const sessions = new Map();
+const previews = new Map();
+const CAPTURE_COOLDOWN_MS = 30_000;
 
 chrome.commands.onCommand.addListener(async (command) => {
   const direction = COMMANDS[command];
@@ -42,10 +44,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  previews.delete(tabId);
+
   for (const [windowId, session] of sessions) {
     if (session.hostTabId === tabId || session.selectedTabId === tabId) {
       sessions.delete(windowId);
     }
+  }
+});
+
+chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
+  setTimeout(() => captureTabPreview(tabId, windowId), 500);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.active && tab.windowId != null) {
+    setTimeout(() => captureTabPreview(tabId, tab.windowId), 500);
   }
 });
 
@@ -57,6 +71,8 @@ async function advanceSwitcher(direction) {
   if (windowId == null || activeTab?.id == null) {
     return;
   }
+
+  await captureTabPreview(activeTab.id, windowId);
 
   const session = sessions.get(windowId);
   const selectedTabId = selectAdjacentTabId(
@@ -82,7 +98,7 @@ async function renderSwitcher(windowId, session, tabs) {
   const payload = {
     windowId,
     selectedTabId: session.selectedTabId,
-    tabs: createSwitcherTabs(tabs)
+    tabs: createSwitcherTabs(tabs, previews)
   };
 
   try {
@@ -143,5 +159,27 @@ async function hideSwitcher(tabId) {
     await chrome.tabs.sendMessage(tabId, { type: "tabCycler:hide" });
   } catch {
     // The overlay is already gone when the page navigated or became unavailable.
+  }
+}
+
+async function captureTabPreview(tabId, windowId) {
+  const cachedPreview = previews.get(tabId);
+
+  if (Date.now() - (cachedPreview?.capturedAt ?? 0) < CAPTURE_COOLDOWN_MS) {
+    return;
+  }
+
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
+      format: "jpeg",
+      quality: 45
+    });
+
+    previews.set(tabId, {
+      dataUrl,
+      capturedAt: Date.now()
+    });
+  } catch {
+    // Keep the last usable preview when Brave blocks a fresh capture.
   }
 }

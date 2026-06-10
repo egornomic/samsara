@@ -36,18 +36,20 @@ test("returns no target when there are no tabs", () => {
   assert.equal(selectAdjacentTabId([], 10, "next"), null);
 });
 
-test("creates switcher tabs in browser order", () => {
+test("creates switcher tabs in browser order with cached previews", () => {
   const tabs = [
     { id: 20, index: 1, title: "Second", url: "https://second.test", active: true },
     { id: 10, index: 0, title: "First", url: "https://first.test", favIconUrl: "icon.png" }
   ];
+  const previews = new Map([[20, { dataUrl: "data:image/jpeg;base64,preview" }]]);
 
-  assert.deepEqual(createSwitcherTabs(tabs), [
+  assert.deepEqual(createSwitcherTabs(tabs, previews), [
     {
       id: 10,
       title: "First",
       url: "https://first.test",
       favIconUrl: "icon.png",
+      previewUrl: "",
       active: false
     },
     {
@@ -55,6 +57,7 @@ test("creates switcher tabs in browser order", () => {
       title: "Second",
       url: "https://second.test",
       favIconUrl: "",
+      previewUrl: "data:image/jpeg;base64,preview",
       active: true
     }
   ]);

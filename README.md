@@ -7,6 +7,11 @@ modifier key and press the shortcut again to move the selection. Release the
 modifier key to activate the selected tab. You can also press `Enter` to commit,
 `Esc` to cancel, or click a tab in the grid.
 
+Cells show cached page previews when Brave allows the extension to capture one.
+Browser extension APIs only capture the currently visible tab, so tabs that have
+not been visible since the extension loaded may show a favicon until they are
+visited once.
+
 ## Install locally in Brave
 
 1. Open `brave://extensions`.
