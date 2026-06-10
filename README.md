@@ -1,6 +1,7 @@
 # frog
 
 Brave browser extension for cycling through open tabs with shortcuts configured by the user.
+The toolbar icon shows the number of open tabs in the current browser window.
 
 Press the configured shortcut to show a tab switcher grid. Keep holding the
 modifier key and press the shortcut again to move the selection. Release the
