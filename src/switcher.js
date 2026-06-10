@@ -44,7 +44,14 @@
       }
 
       .panel {
-        width: min(920px, 100%);
+        --columns: 1;
+        --card-width: 220px;
+        --gap: 10px;
+        --padding: 14px;
+        width: min(
+          calc((var(--columns) * var(--card-width)) + ((var(--columns) - 1) * var(--gap)) + (var(--padding) * 2)),
+          100%
+        );
         max-height: min(680px, 86vh);
         overflow: hidden;
         border: 1px solid rgb(255 255 255 / 18%);
@@ -56,12 +63,12 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        grid-template-columns: repeat(var(--columns), var(--card-width));
         grid-auto-rows: 154px;
-        gap: 10px;
+        gap: var(--gap);
         max-height: min(640px, 82vh);
         overflow: auto;
-        padding: 14px;
+        padding: var(--padding);
         box-sizing: border-box;
       }
 
@@ -166,8 +173,9 @@
     const root = ensureRoot();
     const panel = document.createElement("div");
     panel.className = "backdrop";
+    const columnCount = Math.min(Math.max(state.tabs.length, 1), 4);
     panel.innerHTML = `
-      <div class="panel" role="dialog" aria-label="Tab switcher">
+      <div class="panel" style="--columns: ${columnCount}" role="dialog" aria-label="Tab switcher">
         <div class="grid" role="listbox" aria-label="Open tabs"></div>
       </div>
     `;
