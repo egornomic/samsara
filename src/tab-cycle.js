@@ -11,3 +11,15 @@ export function selectAdjacentTabId(tabs, activeTabId, direction) {
 
   return orderedTabs[nextIndex]?.id ?? null;
 }
+
+export function createSwitcherTabs(tabs) {
+  return [...tabs]
+    .sort((left, right) => left.index - right.index)
+    .map((tab) => ({
+      id: tab.id,
+      title: tab.title || tab.url || "Untitled tab",
+      url: tab.url || "",
+      favIconUrl: tab.favIconUrl || "",
+      active: Boolean(tab.active)
+    }));
+}
