@@ -253,7 +253,7 @@ function createTabCountIcon(size, tabCount) {
   context.fillStyle = "#f7fff2";
   context.fill();
 
-  drawRoundedRect(context, 14 * scale, 18 * scale, 100 * scale, 92 * scale, 24 * scale);
+  drawRoundedRect(context, 4 * scale, 4 * scale, 120 * scale, 120 * scale, 24 * scale);
   context.fillStyle = "#2d722f";
   context.fill();
 
@@ -261,7 +261,7 @@ function createTabCountIcon(size, tabCount) {
   context.font = `800 ${selectIconFontSize(label, scale)}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(label, size / 2, size / 2 + 2 * scale);
+  context.fillText(label, size / 2, size / 2 + 1 * scale);
 
   return context.getImageData(0, 0, size, size);
 }
@@ -282,14 +282,14 @@ function drawRoundedRect(context, x, y, width, height, radius) {
 
 function selectIconFontSize(label, scale) {
   if (label.length >= 3) {
-    return 42 * scale;
+    return 50 * scale;
   }
 
   if (label.length === 2) {
-    return 56 * scale;
+    return 72 * scale;
   }
 
-  return 68 * scale;
+  return 92 * scale;
 }
 
 function formatIconCount(tabCount) {
