@@ -56,7 +56,8 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        grid-auto-rows: 154px;
         gap: 10px;
         max-height: min(640px, 82vh);
         overflow: auto;
@@ -66,9 +67,14 @@
 
       .tab {
         display: grid;
-        grid-template-rows: 88px auto;
+        grid-template-rows: 88px minmax(0, 1fr);
         gap: 8px;
+        width: 100%;
+        height: 100%;
         min-width: 0;
+        min-height: 0;
+        box-sizing: border-box;
+        overflow: hidden;
         border: 2px solid transparent;
         border-radius: 12px;
         padding: 8px;
@@ -91,6 +97,9 @@
         background:
           linear-gradient(135deg, rgb(255 255 255 / 16%), rgb(255 255 255 / 4%)),
           #22262c;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
       }
 
       .preview img {
@@ -110,22 +119,32 @@
         font-weight: 700;
       }
 
+      .meta {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+      }
+
       .title {
+        display: block;
         overflow: hidden;
         color: #fffaf4;
         font-size: 13px;
         font-weight: 650;
         line-height: 1.25;
+        min-width: 0;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
       .url {
+        display: block;
         overflow: hidden;
         margin-top: 3px;
         color: rgb(255 250 244 / 66%);
         font-size: 11px;
         line-height: 1.25;
+        min-width: 0;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
@@ -165,7 +184,7 @@
 
       item.innerHTML = `
         <span class="preview">${icon}</span>
-        <span>
+        <span class="meta">
           <span class="title">${escapeHtml(title)}</span>
           <span class="url">${escapeHtml(host)}</span>
         </span>
