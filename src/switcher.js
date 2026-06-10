@@ -6,6 +6,8 @@
   window.__tabCyclerInstalled = true;
 
   const ROOT_ID = "tab-cycler-switcher-root";
+  const PAGE_SIZE = 12;
+  const MAX_COLUMNS = 4;
   const state = {
     windowId: null,
     selectedTabId: null,
@@ -63,13 +65,32 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(var(--columns), var(--card-width));
+        grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
         grid-auto-rows: 154px;
         gap: var(--gap);
         max-height: min(640px, 82vh);
-        overflow: auto;
+        overflow: hidden;
         padding: var(--padding);
         box-sizing: border-box;
+      }
+
+      .pager {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 14px 12px;
+      }
+
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: rgb(255 255 255 / 28%);
+      }
+
+      .dot.current {
+        width: 18px;
+        background: #ff7a59;
       }
 
       .tab {
@@ -173,16 +194,26 @@
     const root = ensureRoot();
     const panel = document.createElement("div");
     panel.className = "backdrop";
-    const columnCount = Math.min(Math.max(state.tabs.length, 1), 4);
+    const selectedIndex = Math.max(
+      state.tabs.findIndex((tab) => tab.id === state.selectedTabId),
+      0
+    );
+    const pageCount = Math.max(Math.ceil(state.tabs.length / PAGE_SIZE), 1);
+    const pageIndex = Math.min(Math.floor(selectedIndex / PAGE_SIZE), pageCount - 1);
+    const pageTabs = state.tabs.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
+    const columnCount = Math.min(Math.max(pageTabs.length, 1), MAX_COLUMNS);
+    const pager = pageCount > 1 ? createPager(pageCount, pageIndex) : "";
+
     panel.innerHTML = `
       <div class="panel" style="--columns: ${columnCount}" role="dialog" aria-label="Tab switcher">
         <div class="grid" role="listbox" aria-label="Open tabs"></div>
+        ${pager}
       </div>
     `;
 
     const grid = panel.querySelector(".grid");
 
-    for (const tab of state.tabs) {
+    for (const tab of pageTabs) {
       const item = document.createElement("button");
       item.className = tab.id === state.selectedTabId ? "tab selected" : "tab";
       item.type = "button";
@@ -214,10 +245,15 @@
 
     root.shadowRoot.querySelector(".backdrop")?.remove();
     root.shadowRoot.append(panel);
-    root.shadowRoot.querySelector(".selected")?.scrollIntoView({
-      block: "nearest",
-      inline: "nearest"
-    });
+  }
+
+  function createPager(pageCount, pageIndex) {
+    const dots = Array.from({ length: pageCount }, (_, index) => {
+      const className = index === pageIndex ? "dot current" : "dot";
+      return `<span class="${className}"></span>`;
+    }).join("");
+
+    return `<div class="pager" aria-hidden="true">${dots}</div>`;
   }
 
   function hide() {
