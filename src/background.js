@@ -222,7 +222,7 @@ async function updateTabCountIcon() {
     tabCount = tabs.length;
   } catch {
     await chrome.action.setBadgeText({ text: "" });
-    await chrome.action.setTitle({ title: "frog" });
+    await chrome.action.setTitle({ title: "samsara" });
     return;
   }
 
@@ -234,7 +234,7 @@ async function updateTabCountIcon() {
     await chrome.action.setBadgeText({ text: formatIconCount(tabCount) });
   }
 
-  await chrome.action.setTitle({ title: `frog (${tabCount} open tabs)` });
+  await chrome.action.setTitle({ title: `samsara (${tabCount} open tabs)` });
 }
 
 function createTabCountIcons(tabCount) {

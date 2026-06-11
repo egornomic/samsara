@@ -1,4 +1,4 @@
-# frog
+# samsara
 
 Brave browser extension for cycling through open tabs with shortcuts configured by the user.
 The toolbar icon shows the number of open tabs in the current browser window.
