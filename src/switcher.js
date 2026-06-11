@@ -118,10 +118,13 @@
         cursor: pointer;
       }
 
-      .tab:hover,
       .tab.selected {
         border-color: #ff7a59;
         background: rgb(255 122 89 / 18%);
+      }
+
+      .tab:hover:not(.selected) {
+        background: rgb(255 255 255 / 12%);
       }
 
       .preview {
