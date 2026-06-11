@@ -127,6 +127,7 @@ async function renderSwitcher(windowId, session, tabs) {
   const payload = {
     windowId,
     selectedTabId: session.selectedTabId,
+    pageScale: await chrome.tabs.getZoom(session.hostTabId),
     tabs: createSwitcherTabs(tabs, previews)
   };
 

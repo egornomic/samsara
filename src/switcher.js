@@ -10,6 +10,7 @@
   const MAX_COLUMNS = 4;
   const state = {
     windowId: null,
+    pageScale: 1,
     selectedTabId: null,
     tabs: []
   };
@@ -33,8 +34,13 @@
       }
 
       .backdrop {
+        --page-scale: 1;
+        --page-scale-inverse: 1;
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        width: calc(100vw * var(--page-scale));
+        height: calc(100vh * var(--page-scale));
         z-index: 2147483647;
         display: grid;
         place-items: center;
@@ -43,6 +49,8 @@
         background: rgb(13 15 18 / 56%);
         color: #f6f4ef;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        transform: scale(var(--page-scale-inverse));
+        transform-origin: top left;
       }
 
       .panel {
@@ -50,11 +58,9 @@
         --card-width: 220px;
         --gap: 10px;
         --padding: 14px;
-        width: min(
-          calc((var(--columns) * var(--card-width)) + ((var(--columns) - 1) * var(--gap)) + (var(--padding) * 2)),
-          100%
-        );
-        max-height: min(680px, 86vh);
+        width: calc((var(--columns) * var(--card-width)) + ((var(--columns) - 1) * var(--gap)) + (var(--padding) * 2));
+        max-width: calc(100% - 64px);
+        max-height: calc(100% - 64px);
         overflow: hidden;
         border: 1px solid rgb(255 255 255 / 18%);
         border-radius: 18px;
@@ -68,7 +74,7 @@
         grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
         grid-auto-rows: 154px;
         gap: var(--gap);
-        max-height: min(640px, 82vh);
+        max-height: calc((100vh * var(--page-scale)) - 104px);
         overflow: hidden;
         padding: var(--padding);
         box-sizing: border-box;
@@ -202,8 +208,12 @@
     const pageIndex = Math.min(Math.floor(selectedIndex / PAGE_SIZE), pageCount - 1);
     const pageTabs = state.tabs.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
     const columnCount = Math.min(Math.max(pageTabs.length, 1), MAX_COLUMNS);
+    const pageScale = Number.isFinite(state.pageScale) && state.pageScale > 0 ? state.pageScale : 1;
+    const inversePageScale = 1 / pageScale;
     const pager = pageCount > 1 ? createPager(pageCount, pageIndex) : "";
 
+    panel.style.setProperty("--page-scale", String(pageScale));
+    panel.style.setProperty("--page-scale-inverse", String(inversePageScale));
     panel.innerHTML = `
       <div class="panel" style="--columns: ${columnCount}" role="dialog" aria-label="Tab switcher">
         <div class="grid" role="listbox" aria-label="Open tabs"></div>
