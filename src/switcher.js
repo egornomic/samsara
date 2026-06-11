@@ -247,7 +247,11 @@
         </span>
       `;
 
-      item.addEventListener("mouseenter", () => selectTab(tab.id));
+      item.addEventListener("pointermove", (event) => {
+        if (event.movementX !== 0 || event.movementY !== 0) {
+          selectTab(tab.id);
+        }
+      });
       item.addEventListener("focus", () => selectTab(tab.id));
       item.addEventListener("click", () => previewTab(tab.id));
       grid.append(item);
