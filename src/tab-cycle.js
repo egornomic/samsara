@@ -12,6 +12,20 @@ export function selectAdjacentTabId(tabs, activeTabId, direction) {
   return orderedTabs[nextIndex]?.id ?? null;
 }
 
+export function selectInitialTabId(tabs, activeTabId, direction) {
+  if (direction === "next") {
+    const recentTab = [...tabs]
+      .filter((tab) => tab.id !== activeTabId && Number.isFinite(tab.lastAccessed))
+      .sort((left, right) => right.lastAccessed - left.lastAccessed)[0];
+
+    if (recentTab?.id != null) {
+      return recentTab.id;
+    }
+  }
+
+  return selectAdjacentTabId(tabs, activeTabId, direction);
+}
+
 export function createSwitcherTabs(tabs, previews = new Map()) {
   return [...tabs]
     .sort((left, right) => left.index - right.index)

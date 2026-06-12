@@ -1,4 +1,4 @@
-import { createSwitcherTabs, selectAdjacentTabId } from "./tab-cycle.js";
+import { createSwitcherTabs, selectAdjacentTabId, selectInitialTabId } from "./tab-cycle.js";
 
 const COMMANDS = {
   "cycle-next-tab": "next",
@@ -104,11 +104,9 @@ async function advanceSwitcher(direction) {
   await captureTabPreview(activeTab.id, windowId);
 
   const session = sessions.get(windowId);
-  const selectedTabId = selectAdjacentTabId(
-    tabs,
-    session?.selectedTabId ?? activeTab.id,
-    direction
-  );
+  const selectedTabId = session
+    ? selectAdjacentTabId(tabs, session.selectedTabId, direction)
+    : selectInitialTabId(tabs, activeTab.id, direction);
 
   if (selectedTabId == null) {
     return;
