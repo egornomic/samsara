@@ -101,7 +101,7 @@ async function advanceSwitcher(direction) {
     return;
   }
 
-  await captureTabPreview(activeTab.id, windowId);
+  captureTabPreview(activeTab.id, windowId);
 
   const session = sessions.get(windowId);
   const selectedTabId = session
@@ -122,18 +122,21 @@ async function advanceSwitcher(direction) {
 }
 
 async function renderSwitcher(windowId, session, tabs) {
-  const payload = {
-    windowId,
-    selectedTabId: session.selectedTabId,
-    pageScale: await chrome.tabs.getZoom(session.hostTabId),
-    tabs: createSwitcherTabs(tabs, previews)
-  };
-
   try {
-    await chrome.scripting.executeScript({
-      target: { tabId: session.hostTabId },
-      files: ["src/switcher.js"]
-    });
+    const [pageScale] = await Promise.all([
+      chrome.tabs.getZoom(session.hostTabId).catch(() => 1),
+      chrome.scripting.executeScript({
+        target: { tabId: session.hostTabId },
+        files: ["src/switcher.js"]
+      })
+    ]);
+
+    const payload = {
+      windowId,
+      selectedTabId: session.selectedTabId,
+      pageScale: pageScale || 1,
+      tabs: createSwitcherTabs(tabs, previews)
+    };
 
     await chrome.tabs.sendMessage(session.hostTabId, {
       type: "tabCycler:render",

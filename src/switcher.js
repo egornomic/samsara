@@ -5,6 +5,8 @@
 
   window.__tabCyclerInstalled = true;
 
+  let isModifierDown = true;
+
   const ROOT_ID = "tab-cycler-switcher-root";
   const PAGE_SIZE = 12;
   const MAX_COLUMNS = 4;
@@ -351,6 +353,14 @@
     "keyup",
     (event) => {
       if (event.key === "Meta" || event.key === "Control" || event.key === "Alt") {
+        isModifierDown = false;
+      }
+
+      if (!document.getElementById(ROOT_ID)) {
+        return;
+      }
+
+      if (!event.ctrlKey && !event.metaKey && !event.altKey) {
         commit();
       }
     },
@@ -360,6 +370,10 @@
   document.addEventListener(
     "keydown",
     (event) => {
+      if (event.key === "Meta" || event.key === "Control" || event.key === "Alt") {
+        isModifierDown = true;
+      }
+
       if (!document.getElementById(ROOT_ID)) {
         return;
       }
@@ -385,6 +399,13 @@
 
   chrome.runtime.onMessage.addListener((message) => {
     if (message?.type === "tabCycler:render") {
+      if (!isModifierDown) {
+        chrome.runtime.sendMessage({
+          type: "tabCycler:commit",
+          windowId: message.payload.windowId
+        });
+        return;
+      }
       render(message.payload);
     }
 
