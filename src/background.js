@@ -6,8 +6,10 @@ const COMMANDS = {
 };
 
 const sessions = new Map();
+const sessionTimers = new Map();
 const previews = new Map();
 const CAPTURE_COOLDOWN_MS = 30_000;
+const SWITCHER_AUTO_COMMIT_MS = 1_200;
 
 updateTabCountIcon();
 
@@ -62,7 +64,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
   for (const [windowId, session] of sessions) {
     if (session.hostTabId === tabId || session.selectedTabId === tabId) {
-      sessions.delete(windowId);
+      clearSession(windowId);
     }
   }
 
@@ -112,13 +114,23 @@ async function advanceSwitcher(direction) {
     return;
   }
 
+  if (activeTab.status !== "complete") {
+    clearSession(windowId);
+    await chrome.tabs.update(selectedTabId, { active: true });
+    return;
+  }
+
   const nextSession = {
     hostTabId: session?.hostTabId ?? activeTab.id,
     selectedTabId
   };
 
-  sessions.set(windowId, nextSession);
+  setSession(windowId, nextSession);
   await renderSwitcher(windowId, nextSession, tabs);
+
+  if (sessions.get(windowId) === nextSession) {
+    scheduleAutoCommit(windowId);
+  }
 }
 
 async function renderSwitcher(windowId, session, tabs) {
@@ -144,7 +156,7 @@ async function renderSwitcher(windowId, session, tabs) {
     });
   } catch {
     await chrome.tabs.update(session.selectedTabId, { active: true });
-    sessions.delete(windowId);
+    clearSession(windowId);
   }
 }
 
@@ -152,8 +164,8 @@ async function commitSwitcher(windowId) {
   const session = sessions.get(windowId);
 
   if (session) {
+    clearSession(windowId);
     await chrome.tabs.update(session.selectedTabId, { active: true });
-    sessions.delete(windowId);
   }
 
   return { ok: true };
@@ -164,7 +176,7 @@ async function cancelSwitcher(windowId) {
 
   if (session) {
     await hideSwitcher(session.hostTabId);
-    sessions.delete(windowId);
+    clearSession(windowId);
   }
 
   return { ok: true };
@@ -174,10 +186,41 @@ async function selectTab(windowId, tabId) {
   const session = sessions.get(windowId);
 
   if (session && Number.isInteger(tabId)) {
-    sessions.set(windowId, { ...session, selectedTabId: tabId });
+    setSession(windowId, { ...session, selectedTabId: tabId });
+    scheduleAutoCommit(windowId);
   }
 
   return { ok: true };
+}
+
+function setSession(windowId, session) {
+  sessions.set(windowId, session);
+}
+
+function clearSession(windowId) {
+  sessions.delete(windowId);
+  clearAutoCommit(windowId);
+}
+
+function scheduleAutoCommit(windowId) {
+  clearAutoCommit(windowId);
+
+  sessionTimers.set(
+    windowId,
+    setTimeout(() => {
+      sessionTimers.delete(windowId);
+      commitSwitcher(windowId).catch(() => clearSession(windowId));
+    }, SWITCHER_AUTO_COMMIT_MS)
+  );
+}
+
+function clearAutoCommit(windowId) {
+  const timer = sessionTimers.get(windowId);
+
+  if (timer) {
+    clearTimeout(timer);
+    sessionTimers.delete(windowId);
+  }
 }
 
 async function previewTab(windowId, tabId) {
