@@ -6,10 +6,8 @@ const COMMANDS = {
 };
 
 const sessions = new Map();
-const sessionTimers = new Map();
 const previews = new Map();
 const CAPTURE_COOLDOWN_MS = 30_000;
-const SWITCHER_AUTO_COMMIT_MS = 1_200;
 
 updateTabCountIcon();
 
@@ -127,10 +125,6 @@ async function advanceSwitcher(direction) {
 
   setSession(windowId, nextSession);
   await renderSwitcher(windowId, nextSession, tabs);
-
-  if (sessions.get(windowId) === nextSession) {
-    scheduleAutoCommit(windowId);
-  }
 }
 
 async function renderSwitcher(windowId, session, tabs) {
@@ -187,7 +181,6 @@ async function selectTab(windowId, tabId) {
 
   if (session && Number.isInteger(tabId)) {
     setSession(windowId, { ...session, selectedTabId: tabId });
-    scheduleAutoCommit(windowId);
   }
 
   return { ok: true };
@@ -199,28 +192,6 @@ function setSession(windowId, session) {
 
 function clearSession(windowId) {
   sessions.delete(windowId);
-  clearAutoCommit(windowId);
-}
-
-function scheduleAutoCommit(windowId) {
-  clearAutoCommit(windowId);
-
-  sessionTimers.set(
-    windowId,
-    setTimeout(() => {
-      sessionTimers.delete(windowId);
-      commitSwitcher(windowId).catch(() => clearSession(windowId));
-    }, SWITCHER_AUTO_COMMIT_MS)
-  );
-}
-
-function clearAutoCommit(windowId) {
-  const timer = sessionTimers.get(windowId);
-
-  if (timer) {
-    clearTimeout(timer);
-    sessionTimers.delete(windowId);
-  }
 }
 
 async function previewTab(windowId, tabId) {
