@@ -13,10 +13,12 @@ updateTabCountIcon();
 
 chrome.runtime.onInstalled.addListener(() => {
   updateTabCountIcon();
+  installSwitcherInOpenTabs();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   updateTabCountIcon();
+  installSwitcherInOpenTabs();
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
@@ -142,10 +144,35 @@ async function renderSwitcher(windowId, session, tabs) {
       type: "tabCycler:render",
       payload
     });
-  } catch {
+  } catch (error) {
+    console.warn("Could not render tab switcher; switching tabs directly.", {
+      hostTabId: session.hostTabId,
+      error: error instanceof Error ? error.message : String(error)
+    });
     await chrome.tabs.update(session.selectedTabId, { active: true });
     clearSession(windowId);
   }
+}
+
+async function installSwitcherInOpenTabs() {
+  const tabs = await chrome.tabs.query({});
+
+  await Promise.all(
+    tabs.map(async (tab) => {
+      if (tab.id == null) {
+        return;
+      }
+
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["src/switcher.js"]
+        });
+      } catch {
+        // Chrome internal pages do not allow content scripts.
+      }
+    })
+  );
 }
 
 async function commitSwitcher(windowId) {
