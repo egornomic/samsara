@@ -129,13 +129,7 @@ async function advanceSwitcher(direction) {
 
 async function renderSwitcher(windowId, session, tabs) {
   try {
-    const [pageScale] = await Promise.all([
-      chrome.tabs.getZoom(session.hostTabId).catch(() => 1),
-      chrome.scripting.executeScript({
-        target: { tabId: session.hostTabId },
-        files: ["src/switcher.js"]
-      })
-    ]);
+    const pageScale = await chrome.tabs.getZoom(session.hostTabId).catch(() => 1);
 
     const payload = {
       windowId,

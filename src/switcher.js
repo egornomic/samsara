@@ -5,7 +5,7 @@
 
   window.__tabCyclerInstalled = true;
 
-  let isModifierDown = true;
+  let isModifierDown = false;
 
   const ROOT_ID = "tab-cycler-switcher-root";
   const PAGE_SIZE = 12;
@@ -352,9 +352,7 @@
   document.addEventListener(
     "keyup",
     (event) => {
-      if (event.key === "Meta" || event.key === "Control" || event.key === "Alt") {
-        isModifierDown = false;
-      }
+      isModifierDown = event.ctrlKey || event.metaKey || event.altKey;
 
       if (!document.getElementById(ROOT_ID)) {
         return;
@@ -370,9 +368,7 @@
   document.addEventListener(
     "keydown",
     (event) => {
-      if (event.key === "Meta" || event.key === "Control" || event.key === "Alt") {
-        isModifierDown = true;
-      }
+      isModifierDown = event.ctrlKey || event.metaKey || event.altKey;
 
       if (!document.getElementById(ROOT_ID)) {
         return;
