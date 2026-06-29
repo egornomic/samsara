@@ -114,12 +114,6 @@ async function advanceSwitcher(direction) {
     return;
   }
 
-  if (activeTab.status !== "complete") {
-    clearSession(windowId);
-    await chrome.tabs.update(selectedTabId, { active: true });
-    return;
-  }
-
   const nextSession = {
     hostTabId: session?.hostTabId ?? activeTab.id,
     selectedTabId
