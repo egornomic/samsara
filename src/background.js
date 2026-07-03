@@ -6,8 +6,8 @@ const COMMANDS = {
 };
 
 const sessions = new Map();
-const previews = new Map();
 const CAPTURE_COOLDOWN_MS = 30_000;
+const PREVIEW_KEY_PREFIX = "preview:";
 
 updateTabCountIcon();
 
@@ -60,7 +60,7 @@ chrome.tabs.onCreated.addListener(() => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  previews.delete(tabId);
+  chrome.storage.session.remove(previewKey(tabId));
 
   for (const [windowId, session] of sessions) {
     if (session.hostTabId === tabId || session.selectedTabId === tabId) {
@@ -126,6 +126,7 @@ async function advanceSwitcher(direction) {
 async function renderSwitcher(windowId, session, tabs) {
   try {
     const pageScale = await chrome.tabs.getZoom(session.hostTabId).catch(() => 1);
+    const previews = await loadTabPreviews(tabs);
 
     const payload = {
       windowId,
@@ -223,7 +224,8 @@ async function hideSwitcher(tabId) {
 }
 
 async function captureTabPreview(tabId, windowId) {
-  const cachedPreview = previews.get(tabId);
+  const key = previewKey(tabId);
+  const cachedPreview = (await chrome.storage.session.get(key))[key];
 
   if (Date.now() - (cachedPreview?.capturedAt ?? 0) < CAPTURE_COOLDOWN_MS) {
     return;
@@ -235,13 +237,32 @@ async function captureTabPreview(tabId, windowId) {
       quality: 45
     });
 
-    previews.set(tabId, {
-      dataUrl,
-      capturedAt: Date.now()
+    await chrome.storage.session.set({
+      [key]: {
+        dataUrl,
+        capturedAt: Date.now()
+      }
     });
   } catch {
     // Keep the last usable preview when Brave blocks a fresh capture.
   }
+}
+
+async function loadTabPreviews(tabs) {
+  const entries = await chrome.storage.session.get(
+    tabs.flatMap((tab) => tab.id == null ? [] : previewKey(tab.id))
+  );
+
+  return new Map(
+    tabs.flatMap((tab) => {
+      const preview = entries[previewKey(tab.id)];
+      return tab.id == null || !preview ? [] : [[tab.id, preview]];
+    })
+  );
+}
+
+function previewKey(tabId) {
+  return `${PREVIEW_KEY_PREFIX}${tabId}`;
 }
 
 async function updateTabCountIcon() {
