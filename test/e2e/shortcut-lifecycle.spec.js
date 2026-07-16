@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
+import { createSwitcherTabs } from "../../src/tab-cycle.js";
 
 const extensionPath = path.resolve(import.meta.dirname, "../..");
 
@@ -76,6 +77,33 @@ async function renderSwitcher(worker, tab) {
   }, { tabId: tab.id, windowId: tab.windowId });
 }
 
+async function renderLiveTabGrid(worker) {
+  const tabs = await worker.evaluate(() => chrome.tabs.query({ currentWindow: true }));
+  const activeTab = tabs.find((tab) => tab.active);
+
+  await worker.evaluate(async ({ activeTab, switcherTabs }) => {
+    await chrome.tabs.sendMessage(activeTab.id, {
+      type: "tabCycler:render",
+      payload: {
+        windowId: activeTab.windowId,
+        selectedTabId: activeTab.id,
+        pageScale: 1,
+        tabs: switcherTabs
+      }
+    });
+  }, { activeTab, switcherTabs: createSwitcherTabs(tabs) });
+
+  return {
+    browserOrder: [...tabs]
+      .sort((left, right) => left.index - right.index)
+      .map((tab) => tab.id),
+    recentOrder: [...tabs]
+      .sort((left, right) => right.lastAccessed - left.lastAccessed)
+      .map((tab) => tab.id),
+    tabs: tabs.map(({ id, lastAccessed }) => ({ id, lastAccessed }))
+  };
+}
+
 test("commits when the modifier was released before rendering finishes", async () => {
   const extension = await launchExtension();
 
@@ -107,6 +135,33 @@ test("commits when the modifier is released after rendering", async () => {
       globalThis.__shortcutMessages.some((message) => message.type === "tabCycler:commit")
     )).toBe(true);
     await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(0);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("orders the selection grid by most recent activation", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const oldestPage = await extension.context.newPage();
+    await oldestPage.goto(`${baseUrl}/oldest`);
+    const recentPage = await extension.context.newPage();
+    await recentPage.goto(`${baseUrl}/recent`);
+
+    await oldestPage.bringToFront();
+    await recentPage.bringToFront();
+    await extension.page.bringToFront();
+    await extension.page.keyboard.down("Meta");
+
+    const liveTabs = await renderLiveTabGrid(extension.worker);
+    const renderedTabIds = await extension.page
+      .locator("#tab-cycler-switcher-root .tab")
+      .evaluateAll((tabs) => tabs.map((tab) => Number(tab.dataset.tabId)));
+
+    expect(liveTabs.tabs.every((tab) => Number.isFinite(tab.lastAccessed))).toBe(true);
+    expect(liveTabs.recentOrder).not.toEqual(liveTabs.browserOrder);
+    expect(renderedTabIds).toEqual(liveTabs.recentOrder);
   } finally {
     await extension.close();
   }
