@@ -388,6 +388,8 @@
   );
 
   window.addEventListener("blur", () => {
+    isModifierDown = false;
+
     if (document.getElementById(ROOT_ID)) {
       commit();
     }

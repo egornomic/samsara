@@ -15,7 +15,16 @@ let baseUrl;
 test.beforeAll(async () => {
   server = createServer((request, response) => {
     response.writeHead(200, { "content-type": "text/html" });
-    response.end("<!doctype html><title>Shortcut test</title><main>Shortcut test</main>");
+
+    if (request.url === "/focus-frame") {
+      response.end("<!doctype html><title>Focus frame</title><input>");
+      return;
+    }
+
+    const focusFrame = request.url === "/focus-transfer"
+      ? "<iframe src='/focus-frame'></iframe>"
+      : "";
+    response.end(`<!doctype html><title>Shortcut test</title><main tabindex="0">Shortcut test</main>${focusFrame}`);
   });
 
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -129,6 +138,27 @@ test("commits when the modifier is released after rendering", async () => {
     await renderSwitcher(extension.worker, extension.tab);
     await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(1);
 
+    await extension.page.keyboard.up("Meta");
+
+    await expect.poll(() => extension.worker.evaluate(() =>
+      globalThis.__shortcutMessages.some((message) => message.type === "tabCycler:commit")
+    )).toBe(true);
+    await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(0);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("commits when focus leaves the page before rendering finishes", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await extension.page.goto(`${baseUrl}/focus-transfer`);
+    await extension.page.locator("main").focus();
+    await extension.page.keyboard.down("Meta");
+    await extension.page.frameLocator("iframe").locator("input").focus();
+
+    await renderSwitcher(extension.worker, extension.tab);
     await extension.page.keyboard.up("Meta");
 
     await expect.poll(() => extension.worker.evaluate(() =>
