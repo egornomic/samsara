@@ -1,18 +1,79 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="samsara">
-  <rect width="128" height="128" rx="30" fill="#f8faf7"/>
-  <path
-    d="M89 34c17 12 23 35 12 53-12 21-39 28-60 16-16-10-24-28-19-46"
-    fill="none"
-    stroke="#17231d"
-    stroke-width="12"
-    stroke-linecap="round"
-  />
-  <path
-    d="M37 94c-17-12-23-35-12-53 12-21 39-28 60-16 16 10 24 28 19 46"
-    fill="none"
-    stroke="#2f8a5b"
-    stroke-width="12"
-    stroke-linecap="round"
-  />
-  <circle cx="64" cy="64" r="7" fill="#17231d"/>
+  <defs>
+    <radialGradient id="charcoal" cx=".28" cy=".12" r="1">
+      <stop stop-color="#3b4239"/>
+      <stop offset=".55" stop-color="#242b25"/>
+      <stop offset="1" stop-color="#141a16"/>
+    </radialGradient>
+    <linearGradient id="brass" x1=".12" y1="0" x2=".85" y2="1">
+      <stop stop-color="#ffedc5"/>
+      <stop offset=".24" stop-color="#e7cc8d"/>
+      <stop offset=".46" stop-color="#b9914c"/>
+      <stop offset=".6" stop-color="#e3c681"/>
+      <stop offset=".82" stop-color="#bd944e"/>
+      <stop offset="1" stop-color="#96682d"/>
+    </linearGradient>
+    <linearGradient id="bevel" x1="0" y1="0" x2=".7" y2="1">
+      <stop stop-color="#fff5d7"/>
+      <stop offset=".3" stop-color="#e6cd92"/>
+      <stop offset=".62" stop-color="#af8541"/>
+      <stop offset="1" stop-color="#61441e"/>
+    </linearGradient>
+    <linearGradient id="inner-edge" x1="0" y1="0" x2=".8" y2="1">
+      <stop stop-color="#765021"/>
+      <stop offset=".42" stop-color="#c39d58"/>
+      <stop offset="1" stop-color="#f3dfa4"/>
+    </linearGradient>
+    <linearGradient id="glint" x1="0" y1="0" x2=".7" y2="1">
+      <stop stop-color="#fff7df" stop-opacity=".85"/>
+      <stop offset=".5" stop-color="#f4d89a" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#f4d89a" stop-opacity=".35"/>
+    </linearGradient>
+    <linearGradient id="tile-edge" x2=".2" y2="1">
+      <stop stop-color="#b8bca0" stop-opacity=".48"/>
+      <stop offset=".45" stop-color="#818875" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#050a07" stop-opacity=".6"/>
+    </linearGradient>
+    <path id="spokes" d="M50 15V39M50 61V85M15 50H39M61 50H85M25.25 25.25L42.22 42.22M57.78 57.78L74.75 74.75M25.25 74.75L42.22 57.78M57.78 42.22L74.75 25.25"/>
+  </defs>
+  <style>
+    /* Optical correction: enlarge and simplify the mark at toolbar size. */
+    @media (max-width:20px) {
+      .detail { display:none }
+      .wheel { transform:translate(14px,14px) }
+      .face { stroke:#efdba8 }
+      .spoke-face { stroke-width:6.5 }
+    }
+  </style>
+  <rect x="16" y="16" width="96" height="96" rx="23" fill="url(#charcoal)"/>
+  <rect class="detail" x="17" y="17" width="94" height="94" rx="22" fill="none" stroke="url(#tile-edge)" stroke-width="1.1"/>
+  <rect class="detail" x="18.2" y="18.2" width="91.6" height="91.6" rx="20.8" fill="none" stroke="#030905" stroke-opacity=".25" stroke-width=".5"/>
+  <g class="wheel" transform="translate(19 19) scale(.9)" fill="none">
+    <!-- A shallow cast shadow separates the metal from the tile. -->
+    <g class="detail" stroke="#030905" opacity=".5" transform="translate(.3 1.8)">
+      <use href="#spokes" stroke-width="7"/>
+      <circle cx="50" cy="50" r="36" stroke-width="8.8"/>
+      <circle cx="50" cy="50" r="11" stroke-width="6.6"/>
+    </g>
+    <!-- Narrow bevels leave a broad, readable face on every spoke. -->
+    <use class="detail" href="#spokes" stroke="url(#bevel)" stroke-width="7"/>
+    <use class="face spoke-face" href="#spokes" stroke="url(#brass)" stroke-width="5.2"/>
+    <use class="detail" href="#spokes" stroke="url(#glint)" stroke-width=".55" transform="translate(-1.8 -.6)" opacity=".45"/>
+    <circle class="detail" cx="50" cy="50" r="36" stroke="url(#bevel)" stroke-width="9"/>
+    <circle class="face" cx="50" cy="50" r="36" stroke="url(#brass)" stroke-width="7"/>
+    <circle class="detail" cx="50" cy="50" r="32.05" stroke="url(#inner-edge)" stroke-width=".9"/>
+    <circle class="detail" cx="50" cy="50" r="40.2" stroke="url(#glint)" stroke-width=".55"/>
+    <!-- Fine concentric lines suggest machined metal at larger sizes. -->
+    <g class="detail" stroke="#fff0c4" stroke-width=".18" opacity=".17">
+      <circle cx="50" cy="50" r="34"/>
+      <circle cx="50" cy="50" r="35.2"/>
+      <circle cx="50" cy="50" r="36.4"/>
+      <circle cx="50" cy="50" r="37.6"/>
+    </g>
+    <circle class="detail" cx="50" cy="50.7" r="11" stroke="#48341b" stroke-width="7"/>
+    <circle class="detail" cx="50" cy="50" r="11" stroke="url(#bevel)" stroke-width="7"/>
+    <circle class="face" cx="50" cy="50" r="11" stroke="url(#brass)" stroke-width="5.5"/>
+    <circle class="detail" cx="50" cy="50" r="7.75" stroke="url(#inner-edge)" stroke-width=".8"/>
+    <circle class="detail" cx="50" cy="50" r="14.2" stroke="url(#glint)" stroke-width=".5"/>
+  </g>
 </svg>

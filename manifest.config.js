@@ -1,8 +1,11 @@
-{
+import metadata from "./package.json" with { type: "json" };
+
+export default {
   "manifest_version": 3,
-  "name": "samsara",
-  "description": "Preview and cycle through open tabs with user-configured keyboard shortcuts.",
-  "version": "1.3.0",
+  "name": metadata.name,
+  "description": metadata.description,
+  "version": metadata.version,
+  "author": metadata.author,
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -49,4 +52,4 @@
       "description": "Show tab switcher and select the previous tab"
     }
   }
-}
+};

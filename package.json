@@ -1,16 +1,22 @@
 {
   "name": "samsara",
   "version": "1.3.0",
+  "description": "Preview and cycle through open tabs with user-configured keyboard shortcuts.",
+  "author": "egornomic",
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "npm run build && npm test && npm run test:e2e",
     "test": "node --test test/*.test.js",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "icons": "node scripts/export-icons.mjs"
   },
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
-    "@playwright/test": "1.61.1"
+    "@playwright/test": "1.61.1",
+    "fflate": "0.8.3"
   }
 }

@@ -30,7 +30,7 @@ async function renderCommands() {
 }
 
 shortcutsButton.addEventListener("click", async () => {
-  await chrome.tabs.create({ url: "brave://extensions/shortcuts" });
+  await chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
 });
 
 renderCommands();

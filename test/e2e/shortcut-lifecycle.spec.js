@@ -7,7 +7,7 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import { createSwitcherTabs } from "../../src/tab-cycle.js";
 
-const extensionPath = path.resolve(import.meta.dirname, "../..");
+const extensionPath = path.resolve(import.meta.dirname, "../../dist/chrome");
 
 let server;
 let baseUrl;
@@ -192,6 +192,43 @@ test("orders the selection grid by most recent activation", async () => {
     expect(liveTabs.tabs.every((tab) => Number.isFinite(tab.lastAccessed))).toBe(true);
     expect(liveTabs.recentOrder).not.toEqual(liveTabs.browserOrder);
     expect(renderedTabIds).toEqual(liveTabs.recentOrder);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("opens Chrome shortcut settings from the extension settings", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const settings = await extension.context.newPage();
+    await settings.goto(new URL("./options.html", extension.worker.url()).href);
+    await expect(settings.locator("#commands .command")).toHaveCount(2);
+
+    const shortcutsPromise = extension.context.waitForEvent("page");
+    await settings.getByRole("button", { name: "Configure shortcuts" }).click();
+    const shortcuts = await shortcutsPromise;
+    await expect(shortcuts).toHaveURL("chrome://extensions/shortcuts");
+    await expect(shortcuts.locator("extensions-keyboard-shortcuts")).toBeVisible();
+  } finally {
+    await extension.close();
+  }
+});
+
+test("updates the toolbar badge as tabs open and close", async () => {
+  const extension = await launchExtension();
+  const badgeText = () => extension.worker.evaluate(() => chrome.action.getBadgeText({}));
+
+  try {
+    await expect.poll(badgeText).toBe("1");
+    const secondTab = await extension.context.newPage();
+    await secondTab.goto(`${baseUrl}/second`);
+    await expect.poll(badgeText).toBe("2");
+    await expect.poll(() => extension.worker.evaluate(() => chrome.action.getTitle({})))
+      .toBe("samsara (2 open tabs)");
+
+    await secondTab.close();
+    await expect.poll(badgeText).toBe("1");
   } finally {
     await extension.close();
   }

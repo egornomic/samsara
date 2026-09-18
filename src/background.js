@@ -9,15 +9,15 @@ const sessions = new Map();
 const CAPTURE_COOLDOWN_MS = 30_000;
 const PREVIEW_KEY_PREFIX = "preview:";
 
-updateTabCountIcon();
+updateTabCountBadge();
 
 chrome.runtime.onInstalled.addListener(() => {
-  updateTabCountIcon();
+  updateTabCountBadge();
   installSwitcherInOpenTabs();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  updateTabCountIcon();
+  updateTabCountBadge();
   installSwitcherInOpenTabs();
 });
 
@@ -56,7 +56,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.tabs.onCreated.addListener(() => {
-  updateTabCountIcon();
+  updateTabCountBadge();
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -68,20 +68,20 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     }
   }
 
-  updateTabCountIcon();
+  updateTabCountBadge();
 });
 
 chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
-  updateTabCountIcon();
+  updateTabCountBadge();
   setTimeout(() => captureTabPreview(tabId, windowId), 500);
 });
 
 chrome.tabs.onAttached.addListener(() => {
-  updateTabCountIcon();
+  updateTabCountBadge();
 });
 
 chrome.tabs.onDetached.addListener(() => {
-  updateTabCountIcon();
+  updateTabCountBadge();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -91,7 +91,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 chrome.windows.onFocusChanged.addListener(() => {
-  updateTabCountIcon();
+  updateTabCountBadge();
 });
 
 async function advanceSwitcher(direction) {
@@ -265,7 +265,7 @@ function previewKey(tabId) {
   return `${PREVIEW_KEY_PREFIX}${tabId}`;
 }
 
-async function updateTabCountIcon() {
+async function updateTabCountBadge() {
   let tabCount;
 
   try {
@@ -277,71 +277,10 @@ async function updateTabCountIcon() {
     return;
   }
 
-  try {
-    await chrome.action.setIcon({ imageData: createTabCountIcons(tabCount) });
-    await chrome.action.setBadgeText({ text: "" });
-  } catch {
-    await chrome.action.setBadgeBackgroundColor({ color: "#2d722f" });
-    await chrome.action.setBadgeText({ text: formatIconCount(tabCount) });
-  }
-
+  await chrome.action.setBadgeBackgroundColor({ color: "#c3432c" });
+  await chrome.action.setBadgeTextColor({ color: "#ffffff" });
+  await chrome.action.setBadgeText({ text: formatIconCount(tabCount) });
   await chrome.action.setTitle({ title: `samsara (${tabCount} open tabs)` });
-}
-
-function createTabCountIcons(tabCount) {
-  return Object.fromEntries(
-    [16, 32, 48, 128].map((size) => [size, createTabCountIcon(size, tabCount)])
-  );
-}
-
-function createTabCountIcon(size, tabCount) {
-  const canvas = new OffscreenCanvas(size, size);
-  const context = canvas.getContext("2d");
-  const scale = size / 128;
-  const label = formatIconCount(tabCount);
-
-  context.clearRect(0, 0, size, size);
-  drawRoundedRect(context, 0, 0, size, size, 28 * scale);
-  context.fillStyle = "#f7fff2";
-  context.fill();
-
-  drawRoundedRect(context, 4 * scale, 4 * scale, 120 * scale, 120 * scale, 24 * scale);
-  context.fillStyle = "#2d722f";
-  context.fill();
-
-  context.fillStyle = "#ffffff";
-  context.font = `800 ${selectIconFontSize(label, scale)}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(label, size / 2, size / 2 + 1 * scale);
-
-  return context.getImageData(0, 0, size, size);
-}
-
-function drawRoundedRect(context, x, y, width, height, radius) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.lineTo(x + width - radius, y);
-  context.quadraticCurveTo(x + width, y, x + width, y + radius);
-  context.lineTo(x + width, y + height - radius);
-  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  context.lineTo(x + radius, y + height);
-  context.quadraticCurveTo(x, y + height, x, y + height - radius);
-  context.lineTo(x, y + radius);
-  context.quadraticCurveTo(x, y, x + radius, y);
-  context.closePath();
-}
-
-function selectIconFontSize(label, scale) {
-  if (label.length >= 3) {
-    return 50 * scale;
-  }
-
-  if (label.length === 2) {
-    return 72 * scale;
-  }
-
-  return 92 * scale;
 }
 
 function formatIconCount(tabCount) {

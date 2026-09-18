@@ -24,6 +24,9 @@ p {
 }
 
 h1 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   font-size: 18px;
   font-weight: 650;
 }
@@ -80,7 +83,7 @@ button {
   border: 0;
   border-radius: 6px;
   color: white;
-  background: #cf3d2e;
+  background: #c3432c;
   font: inherit;
   font-weight: 650;
   cursor: pointer;
