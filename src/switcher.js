@@ -395,7 +395,12 @@
     }
   });
 
-  chrome.runtime.onMessage.addListener((message) => {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === "tabCycler:prepare") {
+      sendResponse({ ok: true });
+      return;
+    }
+
     if (message?.type === "tabCycler:render") {
       if (!isModifierDown) {
         chrome.runtime.sendMessage({

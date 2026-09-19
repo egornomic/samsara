@@ -21,11 +21,20 @@ chrome.runtime.onStartup.addListener(() => {
   installSwitcherInOpenTabs();
 });
 
-chrome.commands.onCommand.addListener(async (command) => {
+chrome.commands.onCommand.addListener(async (command, tab) => {
   const direction = COMMANDS[command];
 
   if (!direction) {
     return;
+  }
+
+  if (tab?.id != null && !sessions.has(tab.windowId)) {
+    try {
+      // Let the page finish an in-flight link click before reading the tab list.
+      await chrome.tabs.sendMessage(tab.id, { type: "tabCycler:prepare" }, { frameId: 0 });
+    } catch {
+      // Protected pages cannot receive messages; keep direct tab switching there.
+    }
   }
 
   await advanceSwitcher(direction);

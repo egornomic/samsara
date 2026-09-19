@@ -12,9 +12,15 @@ const extensionPath = path.resolve(import.meta.dirname, "../../dist/chrome");
 let server;
 let baseUrl;
 let newTabNavigation = Promise.resolve();
+let blockedClick;
 
 test.beforeAll(async () => {
   server = createServer(async (request, response) => {
+    if (request.url === "/finish-click") {
+      blockedClick.started.resolve();
+      await blockedClick.release.promise;
+    }
+
     if (request.url === "/new-tab") {
       await newTabNavigation;
     }
@@ -29,7 +35,10 @@ test.beforeAll(async () => {
     const focusFrame = request.url === "/focus-transfer"
       ? "<iframe src='/focus-frame'></iframe>"
       : "";
-    response.end(`<!doctype html><title>Shortcut test</title><main tabindex="0">Shortcut test</main><a href="/new-tab">Open tab</a>${focusFrame}`);
+    const clickHandler = request.url === "/busy-page"
+      ? `onclick="const request = new XMLHttpRequest(); request.open('GET', '/finish-click', false); request.send();"`
+      : "";
+    response.end(`<!doctype html><title>Shortcut test</title><main tabindex="0">Shortcut test</main><a href="/new-tab" ${clickHandler}>Open tab</a>${focusFrame}`);
   });
 
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -89,6 +98,14 @@ async function renderSwitcher(worker, tab) {
       }
     });
   }, { tabId: tab.id, windowId: tab.windowId });
+}
+
+async function dispatchCommand(extension, command = "cycle-next-tab") {
+  return extension.worker.evaluate(async ({ command, tab }) => {
+    // CDP keystrokes do not invoke browser shortcuts. Dispatch the real extension event.
+    chrome.commands.onCommand.dispatch(command, tab);
+    return chrome.tabs.query({ currentWindow: true });
+  }, { command, tab: extension.tab });
 }
 
 async function renderLiveTabGrid(worker) {
@@ -233,6 +250,72 @@ test("selects a background link immediately, before its page loads", async () =>
     expect(selectInitialTabId(loadedTabs, extension.tab.id, "next")).toBe(newTab.id);
   } finally {
     releaseNavigation();
+    await extension.close();
+  }
+});
+
+for (const quickRelease of [false, true]) {
+  test(`selects the new tab when the shortcut arrives during its link click (${quickRelease ? "quick release" : "held modifier"})`, async () => {
+    const extension = await launchExtension();
+    blockedClick = { started: Promise.withResolvers(), release: Promise.withResolvers() };
+    const modifier = process.platform === "darwin" ? "Meta" : "Control";
+
+    try {
+      const olderPage = await extension.context.newPage();
+      await olderPage.goto(`${baseUrl}/older`);
+      await extension.page.bringToFront();
+      await extension.page.goto(`${baseUrl}/busy-page`);
+      await extension.page.keyboard.down(modifier);
+
+      // Keep the actual click handler busy until the shortcut reaches the background worker.
+      const click = extension.page.getByRole("link", { name: "Open tab" }).click();
+      await blockedClick.started.promise;
+      const beforeCreation = await dispatchCommand(extension);
+      expect(beforeCreation).toHaveLength(2);
+      blockedClick.release.resolve();
+      await click;
+
+      if (quickRelease) {
+        await extension.page.keyboard.up(modifier);
+        await expect.poll(() => extension.worker.evaluate(async () =>
+          (await chrome.tabs.query({ active: true, currentWindow: true }))[0].url
+        )).toBe(`${baseUrl}/new-tab`);
+        return;
+      }
+
+      const tabs = await extension.worker.evaluate(() => chrome.tabs.query({ currentWindow: true }));
+      const newTab = tabs.find((tab) => tab.url === `${baseUrl}/new-tab` || tab.pendingUrl === `${baseUrl}/new-tab`);
+      const selection = extension.page.locator("#tab-cycler-switcher-root .tab.selected");
+      await expect(selection).toHaveAttribute("data-tab-id", String(newTab.id));
+
+      await dispatchCommand(extension);
+      await expect(selection).toHaveAttribute("data-tab-id", String(extension.tab.id));
+      await dispatchCommand(extension, "cycle-previous-tab");
+      await expect(selection).toHaveAttribute("data-tab-id", String(newTab.id));
+      await extension.page.keyboard.press("Escape");
+      await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(0);
+      const active = await extension.worker.evaluate(() => chrome.tabs.query({ active: true, currentWindow: true }));
+      expect(active[0].id).toBe(extension.tab.id);
+    } finally {
+      blockedClick.release.resolve();
+      await extension.close();
+    }
+  });
+}
+
+test("switches directly from a browser-protected page", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const olderPage = await extension.context.newPage();
+    await olderPage.goto(`${baseUrl}/older`);
+    await extension.page.goto("chrome://version");
+    await extension.page.bringToFront();
+    await dispatchCommand(extension);
+    await expect.poll(() => extension.worker.evaluate(async () =>
+      (await chrome.tabs.query({ active: true, currentWindow: true }))[0].url
+    )).toBe(`${baseUrl}/older`);
+  } finally {
     await extension.close();
   }
 });
