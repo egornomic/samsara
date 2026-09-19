@@ -5,15 +5,20 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
-import { createSwitcherTabs } from "../../src/tab-cycle.js";
+import { createSwitcherTabs, selectInitialTabId } from "../../src/tab-cycle.js";
 
 const extensionPath = path.resolve(import.meta.dirname, "../../dist/chrome");
 
 let server;
 let baseUrl;
+let newTabNavigation = Promise.resolve();
 
 test.beforeAll(async () => {
-  server = createServer((request, response) => {
+  server = createServer(async (request, response) => {
+    if (request.url === "/new-tab") {
+      await newTabNavigation;
+    }
+
     response.writeHead(200, { "content-type": "text/html" });
 
     if (request.url === "/focus-frame") {
@@ -24,7 +29,7 @@ test.beforeAll(async () => {
     const focusFrame = request.url === "/focus-transfer"
       ? "<iframe src='/focus-frame'></iframe>"
       : "";
-    response.end(`<!doctype html><title>Shortcut test</title><main tabindex="0">Shortcut test</main>${focusFrame}`);
+    response.end(`<!doctype html><title>Shortcut test</title><main tabindex="0">Shortcut test</main><a href="/new-tab">Open tab</a>${focusFrame}`);
   });
 
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -193,6 +198,41 @@ test("orders the selection grid by most recent activation", async () => {
     expect(liveTabs.recentOrder).not.toEqual(liveTabs.browserOrder);
     expect(renderedTabIds).toEqual(liveTabs.recentOrder);
   } finally {
+    await extension.close();
+  }
+});
+
+test("selects a background link immediately, before its page loads", async () => {
+  const extension = await launchExtension();
+  let releaseNavigation;
+  newTabNavigation = new Promise((resolve) => { releaseNavigation = resolve; });
+
+  try {
+    const olderPage = await extension.context.newPage();
+    await olderPage.goto(`${baseUrl}/older`);
+    await extension.page.bringToFront();
+
+    await extension.page.getByRole("link", { name: "Open tab" }).click({
+      modifiers: [process.platform === "darwin" ? "Meta" : "Control"]
+    });
+
+    const tabs = await extension.worker.evaluate(() => chrome.tabs.query({ currentWindow: true }));
+    const newTab = tabs.find((tab) => tab.pendingUrl === `${baseUrl}/new-tab`);
+    expect(newTab).toBeDefined();
+    expect(newTab.status).toBe("loading");
+    expect(newTab.active).toBe(false);
+    expect(tabs.find((tab) => tab.active).id).toBe(extension.tab.id);
+    expect(selectInitialTabId(tabs, extension.tab.id, "next")).toBe(newTab.id);
+
+    releaseNavigation();
+    await expect.poll(async () => {
+      const loadedTabs = await extension.worker.evaluate(() => chrome.tabs.query({ currentWindow: true }));
+      return loadedTabs.find((tab) => tab.id === newTab.id)?.status;
+    }).toBe("complete");
+    const loadedTabs = await extension.worker.evaluate(() => chrome.tabs.query({ currentWindow: true }));
+    expect(selectInitialTabId(loadedTabs, extension.tab.id, "next")).toBe(newTab.id);
+  } finally {
+    releaseNavigation();
     await extension.close();
   }
 });
