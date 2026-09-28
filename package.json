@@ -1,6 +1,6 @@
 {
   "name": "samsara",
-  "version": "1.3.0",
+  "version": "1.0.0",
   "description": "Preview and cycle through open tabs with user-configured keyboard shortcuts.",
   "author": "egornomic",
   "private": true,

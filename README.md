@@ -2,6 +2,8 @@
 
 A keyboard-driven tab switcher for Chromium browsers. Preview open tabs, cycle through them in recent activity order, and release the modifier key to switch.
 
+![Samsara tab switcher](store/screenshots/switcher.png)
+
 ## Install for development
 
 Requires Node.js 24 or newer and npm.

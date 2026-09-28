@@ -17,11 +17,11 @@ Sources: [account setup](https://developer.chrome.com/docs/webstore/set-up-accou
 
 1. Start from a clean checkout and run `npm ci`.
 2. Install Chromium with `npx playwright install chromium`.
-3. For an update, choose a higher numeric version in `package.json` and synchronize the lockfile with `npm install --package-lock-only`. Chrome versions use one to four dot-separated integers; do not use prerelease suffixes. The initial prepared package is version `1.3.0`.
+3. For an update, choose a higher numeric version in `package.json` and synchronize the lockfile with `npm install --package-lock-only`. Chrome versions use one to four dot-separated integers; do not use prerelease suffixes. The initial prepared package is version `1.0.0`.
 4. Run `npm run check`. All business logic and browser tests must pass.
 5. Load `dist/chrome` in Chrome and check the shortcut, preview grid, selection, cancellation, and settings button. Check at least one browser-protected page such as `chrome://extensions`, where the extension should switch directly without an overlay.
 6. Complete the assets listed in [store materials](../store/README.md) and host [the privacy statement](privacy.md) at a public URL. This repository preparation does not host that page.
-7. Commit the source and metadata changes, then create a matching release tag, such as `v1.3.0`. Push the commit and tag when you are ready to run CI.
+7. Commit the source and metadata changes, then create a matching release tag, such as `v1.0.0`. Push the commit and tag when you are ready to run CI.
 
 The **Check and package** workflow runs on pull requests, pushes to `master`, version tags, or manual dispatch. It rejects a tag that does not match the package version. After successful tests, it retains the ZIP as a workflow artifact for 30 days. Download the artifact and extract its outer GitHub archive to obtain the actual `samsara-<version>.zip` store package.
 
@@ -29,7 +29,7 @@ The unpacked directory and ZIP contain the same runtime bytes. Fixed archive tim
 
 ## Submit the first version
 
-1. In the developer dashboard, choose **Add new item** and upload `dist/samsara-1.3.0.zip`, or the corresponding tested CI package. The manifest is at the ZIP root.
+1. In the developer dashboard, choose **Add new item** and upload `dist/samsara-1.0.0.zip`, or the corresponding tested CI package. The manifest is at the ZIP root.
 2. Complete the listing using [listing text](../store/listing.md) and the required images.
 3. Supply the public privacy URL and describe local tab metadata and screenshot processing accurately. Use the permission explanations in [reviewer notes](../store/reviewer-notes.md); do not describe local processing as an absence of data access.
 4. Add the reviewer instructions and choose distribution visibility and regions.
