@@ -6,8 +6,10 @@
   window.__tabCyclerInstalled = true;
 
   let isModifierDown = false;
+  let renderTimer = null;
 
   const ROOT_ID = "tab-cycler-switcher-root";
+  const GRID_DELAY_MS = 150;
   const PAGE_SIZE = 12;
   const MAX_COLUMNS = 4;
   const state = {
@@ -199,9 +201,7 @@
     return root;
   }
 
-  function render(payload) {
-    Object.assign(state, payload);
-
+  function render() {
     const root = ensureRoot();
     const panel = document.createElement("div");
     panel.className = "backdrop";
@@ -276,6 +276,8 @@
   }
 
   function hide() {
+    clearTimeout(renderTimer);
+    renderTimer = null;
     document.getElementById(ROOT_ID)?.remove();
   }
 
@@ -354,7 +356,7 @@
     (event) => {
       isModifierDown = event.ctrlKey || event.metaKey || event.altKey;
 
-      if (!document.getElementById(ROOT_ID)) {
+      if (renderTimer === null && !document.getElementById(ROOT_ID)) {
         return;
       }
 
@@ -370,7 +372,7 @@
     (event) => {
       isModifierDown = event.ctrlKey || event.metaKey || event.altKey;
 
-      if (!document.getElementById(ROOT_ID)) {
+      if (renderTimer === null && !document.getElementById(ROOT_ID)) {
         return;
       }
 
@@ -390,7 +392,7 @@
   window.addEventListener("blur", () => {
     isModifierDown = false;
 
-    if (document.getElementById(ROOT_ID)) {
+    if (renderTimer !== null || document.getElementById(ROOT_ID)) {
       commit();
     }
   });
@@ -409,7 +411,16 @@
         });
         return;
       }
-      render(message.payload);
+      Object.assign(state, message.payload);
+
+      if (document.getElementById(ROOT_ID)) {
+        render();
+      } else if (renderTimer === null) {
+        renderTimer = setTimeout(() => {
+          renderTimer = null;
+          render();
+        }, GRID_DELAY_MS);
+      }
     }
 
     if (message?.type === "tabCycler:hide") {

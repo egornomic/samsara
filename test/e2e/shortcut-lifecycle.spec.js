@@ -207,6 +207,7 @@ test("orders the selection grid by most recent activation", async () => {
     await extension.page.keyboard.down("Meta");
 
     const liveTabs = await renderLiveTabGrid(extension.worker);
+    await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(1);
     const renderedTabIds = await extension.page
       .locator("#tab-cycler-switcher-root .tab")
       .evaluateAll((tabs) => tabs.map((tab) => Number(tab.dataset.tabId)));
@@ -250,6 +251,120 @@ test("selects a background link immediately, before its page loads", async () =>
     expect(selectInitialTabId(loadedTabs, extension.tab.id, "next")).toBe(newTab.id);
   } finally {
     releaseNavigation();
+    await extension.close();
+  }
+});
+
+for (const openNewTab of [false, true]) {
+  test(`quickly switches without showing the grid (${openNewTab ? "new loading tab" : "existing tab"})`, async () => {
+    const extension = await launchExtension();
+    const navigation = Promise.withResolvers();
+    newTabNavigation = navigation.promise;
+    const modifier = process.platform === "darwin" ? "Meta" : "Control";
+
+    try {
+      const olderPage = await extension.context.newPage();
+      await olderPage.goto(`${baseUrl}/older`);
+      await extension.page.bringToFront();
+
+      if (openNewTab) {
+        await extension.page.getByRole("link", { name: "Open tab" }).click({ modifiers: [modifier] });
+      }
+
+      const tabs = await extension.worker.evaluate(() => chrome.tabs.query({ currentWindow: true }));
+      const target = tabs.find((tab) => openNewTab
+        ? tab.pendingUrl === `${baseUrl}/new-tab`
+        : tab.url === `${baseUrl}/older`);
+      expect(target).toBeDefined();
+      if (openNewTab) {
+        expect(target.status).toBe("loading");
+      }
+
+      await extension.page.evaluate(() => {
+        window.__gridWasShown = false;
+        new MutationObserver((records) => {
+          if (records.some((record) => [...record.addedNodes]
+            .some((node) => node.id === "tab-cycler-switcher-root"))) {
+            window.__gridWasShown = true;
+          }
+        }).observe(document.documentElement, { childList: true });
+      });
+
+      await extension.page.keyboard.down(modifier);
+      await dispatchCommand(extension);
+      // A short press must not expose the grid, even if rendering finishes before release.
+      await extension.page.waitForTimeout(50);
+      await extension.page.keyboard.up(modifier);
+
+      await expect.poll(() => extension.worker.evaluate(async () =>
+        (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id
+      )).toBe(target.id);
+      // Check after the grid delay too, so a late render cannot pass unnoticed.
+      await extension.page.waitForTimeout(200);
+      expect(await extension.page.evaluate(() => window.__gridWasShown)).toBe(false);
+      await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(0);
+    } finally {
+      navigation.resolve();
+      await extension.close();
+    }
+  });
+}
+
+for (const action of ["Escape", "Enter", "blur"]) {
+  test(`handles ${action} before the grid appears`, async () => {
+    const extension = await launchExtension();
+    const modifier = process.platform === "darwin" ? "Meta" : "Control";
+
+    try {
+      const olderPage = await extension.context.newPage();
+      await olderPage.goto(`${baseUrl}/older`);
+      await extension.page.bringToFront();
+      await extension.page.goto(`${baseUrl}/focus-transfer`);
+      await extension.page.locator("main").focus();
+      await extension.page.keyboard.down(modifier);
+      await dispatchCommand(extension);
+      await extension.page.waitForTimeout(50);
+      await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(0);
+
+      if (action === "blur") {
+        await extension.page.frameLocator("iframe").locator("input").focus();
+      } else {
+        await extension.page.keyboard.press(action);
+      }
+
+      const expectedUrl = `${baseUrl}/${action === "Escape" ? "focus-transfer" : "older"}`;
+      await expect.poll(() => extension.worker.evaluate(async () =>
+        (await chrome.tabs.query({ active: true, currentWindow: true }))[0].url
+      )).toBe(expectedUrl);
+      await extension.page.waitForTimeout(200);
+      await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(0);
+    } finally {
+      await extension.close();
+    }
+  });
+}
+
+test("commits the latest selection when shortcuts repeat before the grid appears", async () => {
+  const extension = await launchExtension();
+  const modifier = process.platform === "darwin" ? "Meta" : "Control";
+
+  try {
+    const olderPage = await extension.context.newPage();
+    await olderPage.goto(`${baseUrl}/older`);
+    await extension.page.bringToFront();
+    await extension.page.keyboard.down(modifier);
+    await dispatchCommand(extension);
+    await extension.page.waitForTimeout(50);
+    await dispatchCommand(extension);
+    await extension.page.keyboard.up(modifier);
+
+    await expect.poll(() => extension.worker.evaluate(async () =>
+      globalThis.__shortcutMessages.some((message) => message.type === "tabCycler:commit")
+        && (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id
+    )).toBe(extension.tab.id);
+    await extension.page.waitForTimeout(200);
+    await expect(extension.page.locator("#tab-cycler-switcher-root")).toHaveCount(0);
+  } finally {
     await extension.close();
   }
 });
